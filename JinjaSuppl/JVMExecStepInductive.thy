@@ -1,10 +1,9 @@
-
 (*  Title:      Jinja/JVM/JVMExecStepInductive.thy
     Author:     Susannah Mansky
     2018, UIUC
-*)
 
-section \<open> Program Execution in the JVM as an inductive \<close>
+    Program Execution in the JVM as an inductive
+*)
 
 theory JVMExecStepInductive
 imports "../../JinjaDCI/JVM/JVMExec"
@@ -351,7 +350,8 @@ inductive_cases exec_step_ind_cases [cases set]:
  "exec_step_ind (StepC2 C' Cs) P h stk loc C M pc ics frs sh \<sigma>"
  "exec_step_ind (StepT Cs a) P h stk loc C M pc ics frs sh \<sigma>"
 
-(* HERE: MOVE *)
+(* Deriving the step_input for exec_step_ind from exec_step arguments *)
+
 fun exec_step_input :: "[jvm_prog, cname, mname, pc, init_call_status] \<Rightarrow> step_input" where
 "exec_step_input P C M pc (Calling C' Cs) = StepC C' Cs" |
 "exec_step_input P C M pc (Called (C'#Cs)) = StepC2 C' Cs" |
@@ -382,6 +382,8 @@ shows "(ics = Called [] \<or> ics = No_ics) \<and> instrs_of P C M ! pc = i"
 using assms proof(cases ics)
   case (Called Cs) with assms show ?thesis by(cases Cs; simp)
 qed(auto)
+
+(* Proving the equivalence of exec_step and exec_step_input *)
 
 lemma exec_step_imp_exec_step_ind:
 assumes es: "exec_step P h stk loc C M pc ics frs sh = (xp', h', frs', sh')"
@@ -906,6 +908,7 @@ proof -
   qed
 qed
 
+(* exec_step and exec_step_ind reach the same result given equivalent input *)
 lemma exec_step_ind_equiv:
  "exec_step P h stk loc C M pc ics frs sh = (xp', h', frs', sh')
    = exec_step_ind (exec_step_input P C M pc ics) P h stk loc C M pc ics frs sh (xp', h', frs', sh')"

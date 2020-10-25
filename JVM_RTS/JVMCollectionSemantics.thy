@@ -1,9 +1,11 @@
 (* File: JVMCollectionSemantics.thy *)
 (* Author: Susannah Mansky, UIUC 2017 *)
-(* Collection functions for Jinja JVM as instances of the CollectionSemantics locale *)
+(* Defining collection functions and using them with Jinja JVM to instantiate
+ the CollectionSemantics locale *)
 
 theory JVMCollectionSemantics
-imports "../Common/CollectionSemantics" JVMSemantics
+imports "../Common/CollectionSemantics" JVMSemantics "../JinjaSuppl/ClassesAbove"
+
 begin
 
 abbreviation JVMcombine :: "cname set \<Rightarrow> cname set \<Rightarrow> cname set" where
@@ -11,6 +13,63 @@ abbreviation JVMcombine :: "cname set \<Rightarrow> cname set \<Rightarrow> cnam
 
 abbreviation JVMcollect_id :: "cname set" where
 "JVMcollect_id \<equiv> {}"
+
+(*******************************************)
+(** JVM-specific classes_above theory **)
+
+fun classes_above_frames :: "'m prog \<Rightarrow> frame list \<Rightarrow> cname set" where
+"classes_above_frames P ((stk,loc,C,M,pc,ics)#frs) = classes_above P C \<union> classes_above_frames P frs" |
+"classes_above_frames P [] = {}"
+
+lemma classes_above_start_state:
+assumes above_xcpts: "classes_above_xcpts P \<inter> classes_changed P P' = {}"
+shows "start_state P = start_state P'"
+using assms classes_above_start_heap by(simp add: start_state_def)
+
+lemma classes_above_matches_ex_entry:
+ "classes_above P C \<inter> classes_changed P P' = {}
+  \<Longrightarrow> matches_ex_entry P C pc xcp = matches_ex_entry P' C pc xcp"
+using classes_above_subcls classes_above_subcls2
+ by(auto simp: matches_ex_entry_def)
+
+lemma classes_above_match_ex_table:
+assumes "classes_above P C \<inter> classes_changed P P' = {}"
+shows "match_ex_table P C pc es = match_ex_table P' C pc es"
+using classes_above_matches_ex_entry[OF assms] proof(induct es) qed(auto)
+
+lemma classes_above_find_handler:
+assumes "classes_above P (cname_of h a) \<inter> classes_changed P P' = {}"
+shows "classes_above_frames P frs \<inter> classes_changed P P' = {}
+  \<Longrightarrow> find_handler P a h frs sh = find_handler P' a h frs sh"
+proof(induct frs)
+  case (Cons fr' frs')
+  obtain stk loc C M pc ics where fr': "fr' = (stk,loc,C,M,pc,ics)" by(cases fr')
+  with Cons have
+       intC: "classes_above P C \<inter> classes_changed P P' = {}"
+   and int: "classes_above_frames P frs' \<inter> classes_changed P P' = {}"  by auto
+  show ?case using Cons fr' int classes_above_method[OF intC]
+    classes_above_match_ex_table[OF assms(1)] by(auto split: bool.splits)
+qed(simp)
+
+lemma find_handler_classes_above_frames:
+ "find_handler P a h frs sh = (xp',h',frs',sh')
+ \<Longrightarrow> classes_above_frames P frs' \<subseteq> classes_above_frames P frs"
+proof(induct frs)
+  case (Cons f1 frs1)
+  then obtain stk loc C M pc ics where f1: "f1 = (stk,loc,C,M,pc,ics)" by(cases f1)
+  show ?case
+  proof(cases "match_ex_table P (cname_of h a) pc (ex_table_of P C M)")
+    case None then show ?thesis using f1 None Cons
+     by(auto split: bool.splits list.splits init_call_status.splits)
+  next
+    case (Some a) then show ?thesis using f1 Some Cons by auto
+  qed
+qed(simp)
+
+lemma find_handler_pieces:
+ "find_handler P a h frs sh = (xp',h',frs',sh')
+ \<Longrightarrow> h = h' \<and> sh = sh' \<and> classes_above_frames P frs' \<subseteq> classes_above_frames P frs"
+using find_handler_classes_above_frames by(auto dest: find_handler_heap find_handler_sheap)
 
 (********************Naive RTS algorithm********************)
 

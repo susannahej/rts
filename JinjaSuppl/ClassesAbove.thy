@@ -2,10 +2,11 @@
     Author:    Susannah Mansky, UIUC 2016
 *)
 
-(* HERE: write a better .thy description *)
-section \<open> Theory around the classes above a class in the class structure,
- in particular noting that if they have not changed, then much of what that
- class sees (methods, fields) stays the same. \<close>
+(*
+ Theory around the classes above (superclasses of) a class in the class
+ structure, in particular noting that if their contents have not changed,
+ then much of what that class sees (methods, fields) stays the same.
+*)
 
 theory ClassesAbove
 imports ClassesChanged Subcls "../../JinjaDCI/Common/Exceptions"
@@ -17,7 +18,6 @@ abbreviation classes_above :: "'m prog \<Rightarrow> cname \<Rightarrow> cname s
 abbreviation classes_between :: "'m prog \<Rightarrow> cname \<Rightarrow> cname \<Rightarrow> cname set" where
 "classes_between P c d \<equiv> { cn. (P \<turnstile> c \<preceq>\<^sup>* cn \<and> P \<turnstile> cn \<preceq>\<^sup>* d) }"
 
-(* HERE: MOVE? *)
 abbreviation classes_above_xcpts :: "'m prog \<Rightarrow> cname set" where
 "classes_above_xcpts P \<equiv> \<Union>x\<in>sys_xcpts. classes_above P x"
 
@@ -268,7 +268,6 @@ lemma classes_above_sblank:
 lemma classes_above_subcls_subset:
  "\<lbrakk> P \<turnstile> C \<preceq>\<^sup>* C' \<rbrakk> \<Longrightarrow> classes_above P C' \<subseteq> classes_above P C"
  by auto
-(**)
 
 (******************************************)
 

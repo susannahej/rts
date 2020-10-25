@@ -6,8 +6,6 @@ theory CollectionBasedRTS
 imports RTS_safe CollectionSemantics
 begin
 
-(********************* Non-Deterministic version *************************)
-
 locale CollectionBasedRTS_base = RTS_safe + CollectionSemantics
 
 locale CollectionBasedRTS = CollectionBasedRTS_base where

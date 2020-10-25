@@ -1,8 +1,7 @@
 (*  Title:      RTS/JinjaSuppl/Subcls.thy
     Author:    Susannah Mansky, UIUC 2016-17
+    Description:  Theory for the subcls relation
 *)
-
-section \<open> Theory for the subcls relation \<close>
 
 theory Subcls
 imports "../../JinjaDCI/Common/TypeRel"

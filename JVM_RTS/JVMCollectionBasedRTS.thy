@@ -11,7 +11,6 @@ begin
 lemma eq_equiv[simp]: "equiv UNIV {(x, y). x = y}"
 by(simp add: equiv_def refl_on_def sym_def trans_def)
 
-(* HERE: MOVE? *)
 (**********************************************)
 (** Some lemmas about classes_above requiring ClassAdd/StartProg **)
 
@@ -29,6 +28,119 @@ assumes ns: "\<not> is_class P C"
  and ncp: "\<And>D. D \<in> sys_xcpts \<Longrightarrow> \<not>P \<turnstile> D \<preceq>\<^sup>* C"
 shows "classes_above_xcpts (class_add P (C, cdec)) = classes_above_xcpts P"
 using assms class_add_classes_above by simp
+
+(*********)
+(** JVM next-step lemmas for instrs that call the initialization procedure **)
+
+lemma JVM_New_next_step:
+assumes step: "\<sigma>' \<in> JVMsmall P \<sigma>"
+ and nend: "\<sigma> \<notin> JVMendset"
+ and curr: "curr_instr P (hd(frames_of \<sigma>)) = New C"
+ and nDone: "\<not>(\<exists>sfs i. sheap \<sigma> C = Some(sfs,i) \<and> i = Done)"
+ and ics: "ics_of(hd(frames_of \<sigma>)) = No_ics"
+shows "ics_of (hd(frames_of \<sigma>')) = Calling C [] \<and> sheap \<sigma> = sheap \<sigma>' \<and> \<sigma>' \<notin> JVMendset"
+proof -
+  obtain xp h frs sh where \<sigma>: "\<sigma>=(xp,h,frs,sh)" by(cases \<sigma>)
+  then obtain f1 frs1 where frs: "frs=f1#frs1" using nend by(cases frs, simp_all add: JVMendset_def)
+  then obtain stk loc C' M' pc ics where f1:"f1=(stk,loc,C',M',pc,ics)" by(cases f1)
+  have xp: "xp = None" using \<sigma> nend by(simp add: JVMendset_def)
+  obtain xp' h' frs' sh' where \<sigma>': "\<sigma>'=(xp',h',frs',sh')" by(cases \<sigma>')
+  have "ics_of (hd frs') = Calling C [] \<and> sh = sh' \<and> frs' \<noteq> [] \<and> xp' = None"
+  proof(cases "sh C")
+    case None then show ?thesis using \<sigma>' xp f1 frs \<sigma> assms by auto
+  next
+    case (Some a)
+    then obtain sfs i where a: "a=(sfs,i)" by(cases a)
+    then have nDone': "i \<noteq> Done" using nDone Some f1 frs \<sigma> by simp
+    show ?thesis using a Some \<sigma>' xp f1 frs \<sigma> assms by(auto split: init_state.splits)
+  qed
+  then show ?thesis using ics \<sigma> \<sigma>' by(cases frs', auto simp: JVMendset_def)
+qed
+
+lemma JVM_Getstatic_next_step:
+assumes step: "\<sigma>' \<in> JVMsmall P \<sigma>"
+ and nend: "\<sigma> \<notin> JVMendset"
+ and curr: "curr_instr P (hd(frames_of \<sigma>)) = Getstatic C F D"
+ and fC: "P \<turnstile> C has F,Static:t in D"
+ and nDone: "\<not>(\<exists>sfs i. sheap \<sigma> D = Some(sfs,i) \<and> i = Done)"
+ and ics: "ics_of(hd(frames_of \<sigma>)) = No_ics"
+shows "ics_of (hd(frames_of \<sigma>')) = Calling D [] \<and> sheap \<sigma> = sheap \<sigma>' \<and> \<sigma>' \<notin> JVMendset"
+proof -
+  obtain xp h frs sh where \<sigma>: "\<sigma>=(xp,h,frs,sh)" by(cases \<sigma>)
+  then obtain f1 frs1 where frs: "frs=f1#frs1" using nend by(cases frs, simp_all add: JVMendset_def)
+  then obtain stk loc C' M' pc ics where f1:"f1=(stk,loc,C',M',pc,ics)" by(cases f1)
+  have xp: "xp = None" using \<sigma> nend by(simp add: JVMendset_def)
+  obtain xp' h' frs' sh' where \<sigma>': "\<sigma>'=(xp',h',frs',sh')" by(cases \<sigma>')
+  have ex': "\<exists>t b. P \<turnstile> C has F,b:t in D" using fC by auto
+  have field: "\<exists>t. field P D F = (D,Static,t)"
+    using fC field_def2 has_field_idemp has_field_sees by blast
+  have nCalled': "\<forall>Cs. ics \<noteq> Called Cs" using ics f1 frs \<sigma> by simp
+  have "ics_of (hd frs') = Calling D [] \<and> sh = sh' \<and> frs' \<noteq> [] \<and> xp' = None"
+  proof(cases "sh D")
+    case None then show ?thesis using field ex' \<sigma>' xp f1 frs \<sigma> assms by auto
+  next
+    case (Some a)
+    then obtain sfs i where a: "a=(sfs,i)" by(cases a)
+    show ?thesis using field ex' a Some \<sigma>' xp f1 frs \<sigma> assms by(auto split: init_state.splits)
+  qed
+  then show ?thesis using ics \<sigma> \<sigma>' by(auto simp: JVMendset_def)
+qed
+
+lemma JVM_Putstatic_next_step:
+assumes step: "\<sigma>' \<in> JVMsmall P \<sigma>"
+ and nend: "\<sigma> \<notin> JVMendset"
+ and curr: "curr_instr P (hd(frames_of \<sigma>)) = Putstatic C F D"
+ and fC: "P \<turnstile> C has F,Static:t in D"
+ and nDone: "\<not>(\<exists>sfs i. sheap \<sigma> D = Some(sfs,i) \<and> i = Done)"
+ and ics: "ics_of(hd(frames_of \<sigma>)) = No_ics"
+shows "ics_of (hd(frames_of \<sigma>')) = Calling D [] \<and> sheap \<sigma> = sheap \<sigma>' \<and> \<sigma>' \<notin> JVMendset"
+proof -
+  obtain xp h frs sh where \<sigma>: "\<sigma>=(xp,h,frs,sh)" by(cases \<sigma>)
+  then obtain f1 frs1 where frs: "frs=f1#frs1" using nend by(cases frs, simp_all add: JVMendset_def)
+  then obtain stk loc C' M' pc ics where f1:"f1=(stk,loc,C',M',pc,ics)" by(cases f1)
+  have xp: "xp = None" using \<sigma> nend by(simp add: JVMendset_def)
+  obtain xp' h' frs' sh' where \<sigma>': "\<sigma>'=(xp',h',frs',sh')" by(cases \<sigma>')
+  have ex': "\<exists>t b. P \<turnstile> C has F,b:t in D" using fC by auto
+  have field: "field P D F = (D,Static,t)"
+    using fC field_def2 has_field_idemp has_field_sees by blast
+  have ics': "ics_of (hd frs') = Calling D [] \<and> sh = sh' \<and> frs' \<noteq> [] \<and> xp' = None"
+  proof(cases "sh D")
+    case None then show ?thesis using field ex' \<sigma>' xp f1 frs \<sigma> assms by auto
+  next
+    case (Some a)
+    then obtain sfs i where a: "a=(sfs,i)" by(cases a)
+    show ?thesis using field ex' a Some \<sigma>' xp f1 frs \<sigma> assms by(auto split: init_state.splits)
+  qed
+  then show ?thesis using ics \<sigma> \<sigma>' by(auto simp: JVMendset_def)
+qed
+
+lemma JVM_Invokestatic_next_step:
+assumes step: "\<sigma>' \<in> JVMsmall P \<sigma>"
+ and nend: "\<sigma> \<notin> JVMendset"
+ and curr: "curr_instr P (hd(frames_of \<sigma>)) = Invokestatic C M n"
+ and mC: "P \<turnstile> C sees M,Static:Ts \<rightarrow> T = m in D"
+ and nDone: "\<not>(\<exists>sfs i. sheap \<sigma> D = Some(sfs,i) \<and> i = Done)"
+ and ics: "ics_of(hd(frames_of \<sigma>)) = No_ics"
+shows "ics_of (hd(frames_of \<sigma>')) = Calling D [] \<and> sheap \<sigma> = sheap \<sigma>' \<and> \<sigma>' \<notin> JVMendset"
+proof -
+  obtain xp h frs sh where \<sigma>: "\<sigma>=(xp,h,frs,sh)" by(cases \<sigma>)
+  then obtain f1 frs1 where frs: "frs=f1#frs1" using nend by(cases frs, simp_all add: JVMendset_def)
+  then obtain stk loc C' M' pc ics where f1:"f1=(stk,loc,C',M',pc,ics)" by(cases f1)
+  have xp: "xp = None" using \<sigma> nend by(simp add: JVMendset_def)
+  obtain xp' h' frs' sh' where \<sigma>': "\<sigma>'=(xp',h',frs',sh')" by(cases \<sigma>')
+  have ex': "\<exists>Ts T m D b. P \<turnstile> C sees M,b:Ts \<rightarrow> T = m in D" using mC by fastforce
+  have method: "\<exists>m. method P C M = (D,Static,m)" using mC by(cases m, auto)
+  have ics': "ics_of (hd frs') = Calling D [] \<and> sh = sh' \<and> frs' \<noteq> [] \<and> xp' = None"
+  proof(cases "sh D")
+    case None then show ?thesis using method ex' \<sigma>' xp f1 frs \<sigma> assms by auto
+  next
+    case (Some a)
+    then obtain sfs i where a: "a=(sfs,i)" by(cases a)
+    then have nDone': "i \<noteq> Done" using nDone Some f1 frs \<sigma> by simp
+    show ?thesis using method ex' a Some \<sigma>' xp f1 frs \<sigma> assms by(auto split: init_state.splits)
+  qed
+  then show ?thesis using ics \<sigma> \<sigma>' by(auto simp: JVMendset_def)
+qed
 
 (***********************************************)
 (*** Definitions ***)
@@ -250,7 +362,7 @@ next
   proof(cases "hd stk = Null")
     case False then show ?thesis
      using Checkcast assms classes_above_subcls classes_above_subcls2
-      apply(simp add: cast_ok_def) by blast
+      by(simp add: cast_ok_def) blast
   qed(simp add: cast_ok_def)
 next
   case (Invoke M n)
@@ -697,7 +809,6 @@ using start_prog_classes_above_Start by(clarsimp split: if_split_asm simp: start
 
 (**************************************************)
 (* Additional well-formedness conditions *)
-(* HERE: MOVE? *)
 
 (* returns class to be initialized by given instr, if applicable
 NOTE: similar to exp-taking init_class from J/EConform - but requires field existence checks *)
@@ -803,10 +914,14 @@ proof -
 qed
 
 (**********************proving naive \<subseteq> smart**********************)
-(* We will prove that, given well-formedness of the program and state, and promises about what has
- or will be collected in previous or future steps, jvm_smart collects everything jvm_naive does.
- We then show that these initial conditions are met by the defined start states, and thus that
- a run test will collect at least those classes collected by the naive algorithm. *)
+(* We prove that, given well-formedness of the program and state, and "promises"
+ about what has or will be collected in previous or future steps, jvm_smart
+ collects everything jvm_naive does. We prove that promises about previously-
+ collected classes ("backward promises") are maintained by execution, and promises
+ about to-be-collected classes ("forward promises") are met by the end of execution.
+ We then show that the required initial conditions (well-formedness and backward
+ promises) are met by the defined start states, and thus that a run test will
+ collect at least those classes collected by the naive algorithm. *)
 
 (******* Backward promises (classes that should already be collected) ***********)
 (** - Classes of objects in the heap are collected **)
@@ -814,9 +929,10 @@ qed
 (** - Current classes from the frame stack are collected **)
 (** - Classes of system exceptions are collected **)
 
-(* If backward promises have been kept, a single step preserves this property; i.e., any classes
-  that have been added to this set (new heap objects, newly prepared sheap classes, new frames)
-  are collected by the smart collection algorithm in that step or by forward promises *)
+(* If backward promises have been kept, a single step preserves this property;
+ i.e., any classes that have been added to this set (new heap objects, newly prepared
+ sheap classes, new frames) are collected by the smart collection algorithm in that
+ step or by forward promises *)
 lemma backward_coll_promises_kept:
 assumes
 (* well-formedness *)
@@ -1155,8 +1271,8 @@ next
   then obtain f1 frs1 where frs: "frames_of \<sigma> = f1#frs1" by(cases "frames_of \<sigma>", auto)
   obtain stk loc C' M pc ics where f1: "f1 = (stk,loc,C',M,pc,ics)" by(cases f1)
   show ?thesis using f1 frs False assms
-    apply(cases \<sigma>, cases "method P C clinit")
-    by(clarsimp simp: split_beta JVMSmartCollectionSemantics.csmall_def JVMendset_def)
+    by(cases \<sigma>, cases "method P C clinit")
+      (clarsimp simp: split_beta JVMSmartCollectionSemantics.csmall_def JVMendset_def)
 qed
 
 (** IH case where C has been prepared (and has a direct superclass - i.e., is not Object) **)
@@ -1187,13 +1303,13 @@ proof(cases "C=Object")
     have "\<forall>C'. P \<turnstile> C \<preceq>\<^sup>* C' \<longrightarrow> C \<noteq> C' \<longrightarrow> (\<exists>sfs i. sheap \<sigma>' C' = Some(sfs,i))
                \<longrightarrow> classes_above P C' \<subseteq> cset"
      using f1 frs False nobj assms
-      apply(cases \<sigma>, cases "method P C clinit")
-      by(auto simp: JVMSmartCollectionSemantics.csmall_def JVMendset_def)
+      by(cases \<sigma>, cases "method P C clinit")
+        (auto simp: JVMSmartCollectionSemantics.csmall_def JVMendset_def)
     then have "\<forall>C'. P \<turnstile> D \<preceq>\<^sup>* C' \<longrightarrow> (\<exists>sfs i. sheap \<sigma>' C' = Some(sfs,i))
          \<longrightarrow> classes_above P C' \<subseteq> cset" using sub dimp by auto
     then show ?thesis using f1 frs False nobj assms
-      apply(cases \<sigma>, cases "method P C clinit")
-      by(auto dest:subcls1D simp: JVMSmartCollectionSemantics.csmall_def JVMendset_def)
+      by(cases \<sigma>, cases "method P C clinit")
+        (auto dest:subcls1D simp: JVMSmartCollectionSemantics.csmall_def JVMendset_def)
   qed
 qed(simp)
 
@@ -1852,9 +1968,9 @@ next
       show "(h1 a = \<lfloor>(C, fs)\<rfloor> \<longrightarrow> classes_above P C \<subseteq> cset) \<and>
       (sh1 C = \<lfloor>(sfs', i')\<rfloor> \<longrightarrow> classes_above P C \<subseteq> cset) \<and>
       (classes_above_frames P frs1 \<subseteq> cset)"
-        apply(rule backward_coll_promises_kept[where h=h and xp=xp and sh=sh and frs=frs and frs'=frs1
-          and xp'=xp1 and h'=h1 and sh'=sh1, OF Suc.prems(1-9)])
-        using Suc.prems(11-12) \<sigma>1' \<sigma>_eq[THEN sym] JVMsmart_csmallD[OF \<sigma>1'(1)] \<sigma>1_case by auto
+      using Suc.prems(11-12) \<sigma>1' \<sigma>_eq[THEN sym] JVMsmart_csmallD[OF \<sigma>1'(1)] \<sigma>1_case
+        backward_coll_promises_kept[where h=h and xp=xp and sh=sh and frs=frs and frs'=frs1
+          and xp'=xp1 and h'=h1 and sh'=sh1, OF Suc.prems(1-9)] by auto
     qed
     then have heap1: "\<And>C fs. \<exists>a. h1 a = Some(C,fs) \<Longrightarrow> classes_above P C \<subseteq> cset"
      and sheap1: "\<And>C sfs i. sh1 C = Some(sfs,i) \<Longrightarrow> classes_above P C \<subseteq> cset"
@@ -1935,10 +2051,8 @@ next
         using Calling_collects[OF obj cbig1(2) nend1 _ sheap3 sub''] ics \<sigma>1_case f1' by simp
     qed
     have sub2: "cset' \<subseteq> cset"
-     apply(rule Suc.hyps[where h=h1 and sh=sh1 and xp=xp1 and loc=loc1 and C'=C1' and M'=M1'
-         and pc=pc1 and ics=ics1 and cset\<^sub>n=cset' and cset\<^sub>s=cset'' and cset=cset and \<sigma>'=\<sigma>',
-       OF wtp correct1 _ heap1 sheap1 xcpts1 frames1 init_class_prom1 Calling_prom1])
-      using \<sigma>1(2,3) \<sigma>1'(2,3) \<sigma>_eq[THEN sym] \<sigma>1_case f1' Suc.prems(12,13) by blast+
+     apply(rule Suc.hyps[OF wtp correct1 f1' heap1 sheap1 xcpts1 frames1 init_class_prom1 Calling_prom1])
+             using \<sigma>1(2,3) \<sigma>1'(2,3) \<sigma>_eq[THEN sym] \<sigma>1_case Suc.prems(12,13) by blast+
     then show ?thesis using \<sigma>1(2) \<sigma>1'(2) sub1 sub2 by fastforce
   qed
 qed
@@ -2161,7 +2275,7 @@ proof -
 qed
 
 (**************************************************)
-(** naive = smart **)
+(** Having proved containment in both directions, we get naive = smart **)
 
 lemma jvm_naive_eq_smart_collection:
 assumes naive: "(\<sigma>',cset\<^sub>n) \<in> jvm_naive_out P t" and smart: "(\<sigma>',cset\<^sub>s) \<in> jvm_smart_out P t"

@@ -1,8 +1,7 @@
 (*  Title:      RTS/JinjaSuppl/ClassesChanged.thy
     Author:    Susannah Mansky, UIUC 2016
+    Description: Theory around the classes changed from one program to another
 *)
-
-section \<open> Theory around the classes changed from one program to another \<close>
 
 theory ClassesChanged
 imports "../../JinjaDCI/Common/Decl"
@@ -25,7 +24,6 @@ lemma classes_changed_self[simp]: "classes_changed P P = {}"
 lemma classes_changed_sym: "classes_changed P P' = classes_changed P' P"
  by (auto simp: class_changed_def)
 
-(* lemma relating classes_changed to execution changes, or lack thereof *)
 lemma classes_changed_class: "\<lbrakk> cn \<notin> classes_changed P P'\<rbrakk> \<Longrightarrow> class P cn = class P' cn"
  by (clarsimp simp: class_changed_def)
 
@@ -33,7 +31,8 @@ lemma classes_changed_class_set: "\<lbrakk> S \<inter> classes_changed P P' = {}
   \<Longrightarrow> \<forall>C \<in> S. class P C = class P' C"
  by (fastforce simp: disjoint_iff_not_equal dest: classes_changed_class)
 
-(*****)
+(* Relating classes_changed over two programs to those over programs with an
+ added class (such as a test class) *)
 
 lemma classes_changed_cons_eq:
  "classes_changed (t # P) P' = (classes_changed P P' - {fst t})

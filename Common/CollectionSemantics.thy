@@ -7,7 +7,7 @@ theory CollectionSemantics
 imports Semantics
 begin
 
-(********************* Non-Deterministic version *************************)
+
 locale CollectionSemantics = Semantics +
  constrains
   small :: "'prog \<Rightarrow> 'state \<Rightarrow> 'state set" and
@@ -16,12 +16,14 @@ locale CollectionSemantics = Semantics +
   collect :: "'prog \<Rightarrow> 'state \<Rightarrow> 'state \<Rightarrow> 'coll" and
   combine :: "'coll \<Rightarrow> 'coll \<Rightarrow> 'coll" and
   collect_id :: "'coll"
-assumes
+ assumes
   combine_assoc: "combine (combine c1 c2) c3 = combine c1 (combine c2 c3)" and
   collect_idl[simp]: "combine collect_id c = c" and
   collect_idr[simp]: "combine c collect_id = c"
 
 context CollectionSemantics begin
+
+(** Small-Step Collection Semantics **)
 
 definition csmall :: "'prog \<Rightarrow> 'state \<Rightarrow> ('state \<times> 'coll) set" where
 "csmall P \<sigma> \<equiv> { (\<sigma>', coll). \<sigma>' \<in> small P \<sigma> \<and> collect P \<sigma> \<sigma>' = coll }"
@@ -31,7 +33,7 @@ assumes "\<forall>\<sigma>. small P \<sigma> = {} \<or> (\<exists>\<sigma>'. sma
 shows "\<forall>\<sigma>. csmall P \<sigma> = {} \<or> (\<exists>o'. csmall P \<sigma> = {o'})"
 using assms by(fastforce simp: csmall_def)
 
-(*********)
+(** Extending csmall to multiple steps **)
 
 primrec csmall_nstep :: "'prog \<Rightarrow> 'state \<Rightarrow> nat \<Rightarrow> ('state \<times> 'coll) set" where
 csmall_nstep_base:
@@ -58,7 +60,6 @@ proof(induct n)
   case (Suc n) then show ?case by fastforce
 qed(simp)
 
-(* HERE: use small_nstep_Rec2 and small_nstep_csmall_nstep_equiv to prove? *)
 lemma csmall_nstep_Rec2:
  "csmall_nstep P \<sigma> (Suc n) =
   { (\<sigma>2, coll). \<exists>\<sigma>1 coll1 coll2. (\<sigma>1, coll1) \<in> csmall P \<sigma>
@@ -135,7 +136,6 @@ proof(induct n arbitrary: \<sigma> \<sigma>' coll)
   then show ?case using nstep assms Suc by auto blast
 qed(simp add: base)
 
-(* HERE: modify this to use csmall_to_csmall_nstep_prop *)
 lemma csmall_to_csmall_nstep_prop2:
 assumes cond: "\<And>P P' \<sigma> \<sigma>' coll. (\<sigma>', coll) \<in> csmall P \<sigma>
              \<Longrightarrow> R P P' coll \<Longrightarrow> Q \<sigma> \<Longrightarrow> (\<sigma>', coll) \<in> csmall P' \<sigma>"
@@ -150,7 +150,7 @@ proof(induct n arbitrary: \<sigma> \<sigma>' coll)
   then show ?case using nstep assms Suc by auto blast
 qed(simp)
 
-(*********)
+(** Extending csmall to a big-step semantics **)
 
 definition cbig :: "'prog \<Rightarrow> 'state \<Rightarrow> ('state \<times> 'coll) set" where
 "cbig P \<sigma> \<equiv>
@@ -199,7 +199,6 @@ shows "(\<sigma>', coll) \<in> cbig P \<sigma> \<Longrightarrow> R P coll \<Long
 using assms csmall_to_csmall_nstep_prop[where R=R and Q=Q and R'=R' and \<sigma>=\<sigma>]
   by(auto simp: cbig_def2)
 
-(* HERE: modify this to use csmall_to_cbig_prop *)
 lemma csmall_to_cbig_prop2:
 assumes "\<And>P P' \<sigma> \<sigma>' coll. (\<sigma>', coll) \<in> csmall P \<sigma> \<Longrightarrow> R P P' coll \<Longrightarrow> Q \<sigma> \<Longrightarrow> (\<sigma>', coll) \<in> csmall P' \<sigma>"
   and "\<And>P P' coll1 coll2. R P P' (combine coll1 coll2) = (R P P' coll1 \<and> R P P' coll2)"

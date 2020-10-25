@@ -6,9 +6,7 @@ theory Semantics
 imports Main
 begin
 
-(********************* Deterministic version - available in pre-March 22, 2017 version *************************)
 
-(********************* Non-Deterministic version *************************)
 locale Semantics =
  fixes
   small :: "'prog \<Rightarrow> 'state \<Rightarrow> 'state set" and
@@ -17,6 +15,8 @@ locale Semantics =
   endset_final: "\<sigma> \<in> endset \<Longrightarrow> \<forall>P. small P \<sigma> = {}"
 
 context Semantics begin
+
+(** Extending small to multiple steps **)
 
 primrec small_nstep :: "'prog \<Rightarrow> 'state \<Rightarrow> nat \<Rightarrow> 'state set" where
 small_nstep_base:
@@ -60,11 +60,10 @@ assumes "\<sigma>' \<in> small_nstep P \<sigma> (Suc n)"
 shows "\<exists>\<sigma>1. \<sigma>1 \<in> small P \<sigma> \<and> \<sigma>' \<in> small_nstep P \<sigma>1 n"
   using small_nstep_Rec2 case_prodD assms by fastforce
 
-(* HERE: MOVE *)
 lemma small_nstep_Suc_nend: "\<sigma>' \<in> small_nstep P \<sigma> (Suc n1) \<Longrightarrow> \<sigma> \<notin> endset"
   using endset_final small_nstep_SucD by fastforce
 
-(****)
+(** Extending small to a big-step semantics **)
 
 definition big :: "'prog \<Rightarrow> 'state \<Rightarrow> 'state set" where
 "big P \<sigma> \<equiv> { \<sigma>'. \<exists>n. \<sigma>' \<in> small_nstep P \<sigma> n \<and> \<sigma>' \<in> endset }"
