@@ -1,14 +1,16 @@
 (*  Title:      RTS/JinjaSuppl/ClassesChanged.thy
-    Author:    Susannah Mansky, UIUC 2016
+    Author:    Susannah Mansky, UIUC 2020
     Description: Theory around the classes changed from one program to another
 *)
+
+section "@{term classes_changed} theory"
 
 theory ClassesChanged
 imports "../../JinjaDCI/Common/Decl"
 begin
 
-(* a class is considered changed if it exists only in one program or the other,
-  or exists in both but is different *)
+text "A class is considered changed if it exists only in one program or the other,
+  or exists in both but is different."
 definition classes_changed :: "'m prog \<Rightarrow> 'm prog \<Rightarrow> cname set" where
 "classes_changed P1 P2 = {cn. class P1 cn \<noteq> class P2 cn}"
 
@@ -31,8 +33,8 @@ lemma classes_changed_class_set: "\<lbrakk> S \<inter> classes_changed P P' = {}
   \<Longrightarrow> \<forall>C \<in> S. class P C = class P' C"
  by (fastforce simp: disjoint_iff_not_equal dest: classes_changed_class)
 
-(* Relating classes_changed over two programs to those over programs with an
- added class (such as a test class) *)
+text "We now relate @{term classes_changed} over two programs to those
+ over programs with an added class (such as a test class)."
 
 lemma classes_changed_cons_eq:
  "classes_changed (t # P) P' = (classes_changed P P' - {fst t})

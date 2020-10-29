@@ -1,13 +1,14 @@
-(* File: CollectionSemantics.thy *)
-(* Author: Susannah Mansky, UIUC 2017 *)
-(* General model for small step semantics instrumented
- with an information collection mechanism *)
+(* Title: RTS/Common/CollectionSemantics.thy *)
+(* Author: Susannah Mansky, UIUC 2020 *)
+
+section "Collection Semantics"
 
 theory CollectionSemantics
 imports Semantics
 begin
 
-
+text "General model for small step semantics instrumented
+ with an information collection mechanism:"
 locale CollectionSemantics = Semantics +
  constrains
   small :: "'prog \<Rightarrow> 'state \<Rightarrow> 'state set" and
@@ -23,7 +24,7 @@ locale CollectionSemantics = Semantics +
 
 context CollectionSemantics begin
 
-(** Small-Step Collection Semantics **)
+subsection "Small-Step Collection Semantics"
 
 definition csmall :: "'prog \<Rightarrow> 'state \<Rightarrow> ('state \<times> 'coll) set" where
 "csmall P \<sigma> \<equiv> { (\<sigma>', coll). \<sigma>' \<in> small P \<sigma> \<and> collect P \<sigma> \<sigma>' = coll }"
@@ -33,7 +34,7 @@ assumes "\<forall>\<sigma>. small P \<sigma> = {} \<or> (\<exists>\<sigma>'. sma
 shows "\<forall>\<sigma>. csmall P \<sigma> = {} \<or> (\<exists>o'. csmall P \<sigma> = {o'})"
 using assms by(fastforce simp: csmall_def)
 
-(** Extending csmall to multiple steps **)
+subsection "Extending @{term csmall} to multiple steps"
 
 primrec csmall_nstep :: "'prog \<Rightarrow> 'state \<Rightarrow> nat \<Rightarrow> ('state \<times> 'coll) set" where
 csmall_nstep_base:
@@ -150,7 +151,7 @@ proof(induct n arbitrary: \<sigma> \<sigma>' coll)
   then show ?case using nstep assms Suc by auto blast
 qed(simp)
 
-(** Extending csmall to a big-step semantics **)
+subsection "Extending @{term csmall} to a big-step semantics"
 
 definition cbig :: "'prog \<Rightarrow> 'state \<Rightarrow> ('state \<times> 'coll) set" where
 "cbig P \<sigma> \<equiv>
@@ -252,6 +253,6 @@ next
   qed
 qed
 
-end (* CollectionSemantics *)
+end \<comment> \<open> CollectionSemantics \<close>
 
 end

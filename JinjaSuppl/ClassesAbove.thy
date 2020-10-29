@@ -1,12 +1,13 @@
 (*  Title:      RTS/JinjaSuppl/ClassesAbove.thy
-    Author:    Susannah Mansky, UIUC 2016
+    Author:    Susannah Mansky, UIUC 2020
 *)
 
-(*
- Theory around the classes above (superclasses of) a class in the class
- structure, in particular noting that if their contents have not changed,
- then much of what that class sees (methods, fields) stays the same.
-*)
+section "@{term classes_above} theory"
+
+text "This section contains theory around the classes above
+ (superclasses of) a class in the class structure, in particular
+ noting that if their contents have not changed, then much of what
+ that class sees (methods, fields) stays the same."
 
 theory ClassesAbove
 imports ClassesChanged Subcls "../../JinjaDCI/Common/Exceptions"
@@ -96,7 +97,12 @@ lemma classes_above_sub_classes_between_eq:
  "P \<turnstile> C \<preceq>\<^sup>* D \<Longrightarrow> classes_above P C = (classes_between P C D - {D}) \<union> classes_above P D"
 using subcls_confluent by auto
 
-(*****************************Methods*********************************)
+lemma classes_above_subcls_subset:
+ "\<lbrakk> P \<turnstile> C \<preceq>\<^sup>* C' \<rbrakk> \<Longrightarrow> classes_above P C' \<subseteq> classes_above P C"
+ by auto
+
+(************************************************************)
+subsection "Methods"
 
 lemma classes_above_sees_methods:
 assumes int: "classes_above P C \<inter> classes_changed P P' = {}" and ms: "P \<turnstile> C sees_methods Mm"
@@ -150,7 +156,8 @@ next
   with False show ?thesis by(simp add: method_def)
 qed
 
-(********************* Fields ************************)
+(*********************************************)
+subsection "Fields"
 
 lemma classes_above_has_fields:
 assumes int: "classes_above P C \<inter> classes_changed P P' = {}" and fs: "P \<turnstile> C has_fields FDTs"
@@ -265,11 +272,8 @@ lemma classes_above_sblank:
   sblank P C = sblank P' C"
  by (simp add: sblank_def classes_above_isfields)
 
-lemma classes_above_subcls_subset:
- "\<lbrakk> P \<turnstile> C \<preceq>\<^sup>* C' \<rbrakk> \<Longrightarrow> classes_above P C' \<subseteq> classes_above P C"
- by auto
-
 (******************************************)
+subsection "Other"
 
 lemma classes_above_start_heap:
 assumes "classes_above_xcpts P \<inter> classes_changed P P' = {}"

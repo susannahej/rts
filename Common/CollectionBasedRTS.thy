@@ -1,6 +1,7 @@
-(* File: CollectionBasedRTS.thy *)
-(* Author: Susannah Mansky, UIUC 2017 *)
-(* General model for Regression Test Selection based on Collection Semantics *)
+(* Title: RTS/Common/CollectionBasedRTS.thy *)
+(* Author: Susannah Mansky, UIUC 2020 *)
+
+section "Collection-based RTS"
 
 theory CollectionBasedRTS
 imports RTS_safe CollectionSemantics
@@ -8,6 +9,8 @@ begin
 
 locale CollectionBasedRTS_base = RTS_safe + CollectionSemantics
 
+text "General model for Regression Test Selection based on
+ @{term CollectionSemantics}:"
 locale CollectionBasedRTS = CollectionBasedRTS_base where
   small = "small :: 'prog \<Rightarrow> 'state \<Rightarrow> 'state set" and
   collect = "collect :: 'prog \<Rightarrow> 'state \<Rightarrow> 'state \<Rightarrow> 'coll" and
@@ -24,6 +27,6 @@ locale CollectionBasedRTS = CollectionBasedRTS_base where
 
 context CollectionBasedRTS begin
 
-end (* CollectionBasedRTS *)
+end \<comment> \<open> CollectionBasedRTS \<close>
 
 end

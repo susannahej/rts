@@ -1,12 +1,13 @@
-(* File: Semantics.thy *)
-(* Author: Susannah Mansky, UIUC 2017 *)
-(* General model for small step (and associated big step) semantics *)
+(* Title: RTS/Common/Semantics.thy *)
+(* Author: Susannah Mansky, UIUC 2020 *)
+
+section "Semantics model"
 
 theory Semantics
 imports Main
 begin
 
-
+text "General model for small-step semantics:"
 locale Semantics =
  fixes
   small :: "'prog \<Rightarrow> 'state \<Rightarrow> 'state set" and
@@ -16,7 +17,7 @@ locale Semantics =
 
 context Semantics begin
 
-(** Extending small to multiple steps **)
+subsection "Extending @{term small} to multiple steps"
 
 primrec small_nstep :: "'prog \<Rightarrow> 'state \<Rightarrow> nat \<Rightarrow> 'state set" where
 small_nstep_base:
@@ -63,7 +64,7 @@ shows "\<exists>\<sigma>1. \<sigma>1 \<in> small P \<sigma> \<and> \<sigma>' \<i
 lemma small_nstep_Suc_nend: "\<sigma>' \<in> small_nstep P \<sigma> (Suc n1) \<Longrightarrow> \<sigma> \<notin> endset"
   using endset_final small_nstep_SucD by fastforce
 
-(** Extending small to a big-step semantics **)
+subsection "Extending @{term small} to a big-step semantics"
 
 definition big :: "'prog \<Rightarrow> 'state \<Rightarrow> 'state set" where
 "big P \<sigma> \<equiv> { \<sigma>'. \<exists>n. \<sigma>' \<in> small_nstep P \<sigma> n \<and> \<sigma>' \<in> endset }"
@@ -95,7 +96,7 @@ proof -
   then show ?thesis using small_nstep_SucD nend big_def2 by(cases n, simp) blast
 qed
 
-(****)
+(***)
 
 lemma small_nstep_det_last_eq:
 assumes det: "\<forall>\<sigma>. small P \<sigma> = {} \<or> (\<exists>\<sigma>'. small P \<sigma> = {\<sigma>'})"
@@ -128,7 +129,7 @@ next
   qed
 qed
 
-end (* Semantics *)
+end \<comment> \<open> Semantics \<close>
 
 
 end

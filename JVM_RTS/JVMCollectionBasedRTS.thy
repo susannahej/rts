@@ -1,6 +1,8 @@
-(* File: JVMCollectionBasedRTS.thy *)
-(* Author: Susannah Mansky, UIUC 2017-2018 *)
+(* File: RTS/JVM_RTS/JVMCollectionBasedRTS.thy *)
+(* Author: Susannah Mansky, UIUC 2020 *)
 (* Proof of safety of certain collection based RTS algorithms for Jinja JVM *)
+
+section "Instantiating @{term CollectionBasedRTS} with Jinja JVM"
 
 theory JVMCollectionBasedRTS
 imports "../Common/CollectionBasedRTS" JVMCollectionSemantics
@@ -12,7 +14,8 @@ lemma eq_equiv[simp]: "equiv UNIV {(x, y). x = y}"
 by(simp add: equiv_def refl_on_def sym_def trans_def)
 
 (**********************************************)
-(** Some lemmas about classes_above requiring ClassAdd/StartProg **)
+subsection \<open> Some @{text "classes_above"} lemmas \<close>
+(* here because they require ClassAdd/StartProg *)
 
 lemma start_prog_classes_above_Start:
  "classes_above (start_prog P C M) Start = {Object,Start}"
@@ -30,7 +33,7 @@ shows "classes_above_xcpts (class_add P (C, cdec)) = classes_above_xcpts P"
 using assms class_add_classes_above by simp
 
 (*********)
-(** JVM next-step lemmas for instrs that call the initialization procedure **)
+subsection "JVM next-step lemmas for initialization calling"
 
 lemma JVM_New_next_step:
 assumes step: "\<sigma>' \<in> JVMsmall P \<sigma>"
@@ -143,7 +146,7 @@ proof -
 qed
 
 (***********************************************)
-(*** Definitions ***)
+subsection "Definitions"
 
 definition main :: "string" where "main = ''main''"
 definition Test :: "string" where "Test = ''Test''"
@@ -152,7 +155,8 @@ definition test_oracle :: "string" where "test_oracle = ''oracle''"
 type_synonym jvm_class = "jvm_method cdecl"
 type_synonym jvm_prog_out = "jvm_state \<times> cname set"
 
-(* jvm_deselection based on classes that have changed from P1 to P2 *)
+text "A deselection algorithm based on classes that have changed from
+ @{text P1} to @{text P2}:"
 primrec jvm_deselect :: "jvm_prog \<Rightarrow> jvm_prog_out \<Rightarrow> jvm_prog \<Rightarrow> bool" where
 "jvm_deselect P1 (\<sigma>, cset) P2 = (cset \<inter> (classes_changed P1 P2) = {})"
 
@@ -172,7 +176,7 @@ declare jvm_progs_def [simp]
 declare jvm_tests_def [simp]
 
 (*****************************************************************************************)
-(** Some theory about the definitions **)
+subsection "Definition lemmas"
 
 lemma jvm_progs_tests_nStart:
 assumes P: "P \<in> jvm_progs" and t: "t \<in> jvm_tests"
@@ -215,7 +219,9 @@ proof -
 qed
 
 (************************************************)
-(********************Naive RTS algorithm********************)
+subsection "Naive RTS algorithm"
+
+subsubsection "Definitions"
 
 fun jvm_naive_out :: "jvm_prog \<Rightarrow> jvm_class \<Rightarrow> jvm_prog_out set" where
 "jvm_naive_out P t = JVMNaiveCollectionSemantics.cbig (jvm_make_test_prog P t) (start_state (t#P))"
@@ -236,13 +242,16 @@ proof -
 qed
 
 (***********************************************************)
-(***** Lemmas showing the correctness of ncollect on relevant functions *****)
-(*** We start with exec_instr, then all the functions/pieces that are used by naive csmall
-  (that is, pieces used by exec - such as which frames are used based on ics - and all functions
-  used by the collection function). We then prove that csmall is existence safe, extend this
-  result to cbig, and finally prove the existence_safe statement over the locale pieces. ***)
+subsubsection "Naive algorithm correctness"
 
-(**** if collected classes unchanged, exec_instr unchanged ****)
+text "We start with correctness over @{term exec_instr}, then all the
+ functions/pieces that are used by naive @{term csmall} (that is, pieces
+ used by @{term exec} - such as which frames are used based on @{term ics}
+ - and all functions used by the collection function). We then prove that
+ @{term csmall} is existence safe, extend this result to @{term cbig}, and
+ finally prove the @{term existence_safe} statement over the locale pieces."
+
+\<comment> \<open> if collected classes unchanged, @{term exec_instr} unchanged \<close>
 lemma ncollect_exec_instr:
 assumes "JVMinstr_ncollect P i h stk \<inter> classes_changed P P' = {}"
   and above_C: "classes_above P C \<inter> classes_changed P P' = {}"
@@ -426,7 +435,8 @@ next
   case (IfFalse x17) then show ?thesis using assms by auto
 qed(auto)
 
-(**** if collected classes unchanged, instr collection unchanged ****)
+
+\<comment> \<open> if collected classes unchanged, instruction collection unchanged \<close>
 lemma ncollect_JVMinstr_ncollect:
 assumes "JVMinstr_ncollect P i h stk \<inter> classes_changed P P' = {}"
 shows "JVMinstr_ncollect P i h stk = JVMinstr_ncollect P' i h stk"
@@ -489,7 +499,7 @@ next
    classes_above_set[of "cname_of h (the_Addr (hd stk))" P P'] by auto
 qed(auto)
 
-(**** if collected classes unchanged, exec_step unchanged ****)
+\<comment> \<open> if collected classes unchanged, @{term exec_step} unchanged \<close>
 lemma ncollect_exec_step:
 assumes "JVMstep_ncollect P h stk C M pc ics \<inter> classes_changed P P' = {}"
   and above_C: "classes_above P C \<inter> classes_changed P P' = {}"
@@ -535,7 +545,7 @@ next
   case (Throwing Cs a) then show ?thesis using assms by(cases Cs; simp)
 qed
 
-(**** if collected classes unchanged, exec_step collection unchanged ****)
+\<comment> \<open> if collected classes unchanged, @{term exec_step} collection unchanged \<close>
 lemma ncollect_JVMstep_ncollect:
 assumes "JVMstep_ncollect P h stk C M pc ics \<inter> classes_changed P P' = {}"
   and above_C: "classes_above P C \<inter> classes_changed P P' = {}"
@@ -571,7 +581,7 @@ next
   using assms classes_above_set[of "cname_of h a" P P'] by simp
 qed
 
-(**** if collected classes unchanged, classes_above_frames unchanged ****)
+\<comment> \<open> if collected classes unchanged, @{term classes_above_frames} unchanged \<close>
 lemma ncollect_classes_above_frames:
  "JVMexec_ncollect P (None, h, (stk,loc,C,M,pc,ics)#frs, sh) \<inter> classes_changed P P' = {}
  \<Longrightarrow> classes_above_frames P frs = classes_above_frames P' frs"
@@ -583,7 +593,7 @@ proof(induct frs)
    classes_above_subcls2[OF above_C] by auto
 qed(auto)
 
-(**** if collected classes unchanged, classes_above_xcpts unchanged ****)
+\<comment> \<open> if collected classes unchanged, @{term classes_above_xcpts} unchanged \<close>
 lemma ncollect_classes_above_xcpts:
 assumes "JVMexec_ncollect P (None, h, (stk,loc,C,M,pc,ics)#frs, sh) \<inter> classes_changed P P' = {}"
 shows "classes_above_xcpts P = classes_above_xcpts P'"
@@ -605,7 +615,7 @@ proof -
   show ?thesis using left right by auto
 qed
 
-(**** if collected classes unchanged, exec collection unchanged ****)
+\<comment> \<open> if collected classes unchanged, @{term exec} collection unchanged \<close>
 lemma ncollect_JVMexec_ncollect:
 assumes "JVMexec_ncollect P \<sigma> \<inter> classes_changed P P' = {}"
 shows "JVMexec_ncollect P \<sigma> = JVMexec_ncollect P' \<sigma>"
@@ -630,7 +640,8 @@ proof -
   qed(auto)
 qed
 
-(**** if collected classes unchanged, classes above an exception returned by exec_instr unchanged ****)
+\<comment> \<open> if collected classes unchanged, classes above an exception returned
+ by @{term exec_instr} unchanged \<close>
 lemma ncollect_exec_instr_xcpts:
 assumes collect: "JVMinstr_ncollect P i h stk \<inter> classes_changed P P' = {}"
   and xpcollect: "classes_above_xcpts P \<inter> classes_changed P P' = {}"
@@ -644,7 +655,8 @@ proof(cases i)
   case Throw then show ?thesis using assms by(cases "hd stk", fastforce+)
 qed(fastforce+)
 
-(**** if collected classes unchanged, classes above an exception returned by exec_step unchanged ****)
+\<comment> \<open> if collected classes unchanged, classes above an exception returned
+ by @{term exec_step} unchanged \<close>
 lemma ncollect_exec_step_xcpts:
 assumes collect: "JVMstep_ncollect P h stk C M pc ics \<inter> classes_changed P P' = {}"
   and xpcollect: "classes_above_xcpts P \<inter> classes_changed P P' = {}"
@@ -663,7 +675,8 @@ next
   case (Throwing Cs a) then show ?thesis using assms by(cases Cs; simp)
 qed
 
-(**** if collected classes unchanged, if csmall returned a result under P, P' returns the same ****)
+\<comment> \<open> if collected classes unchanged, if @{term csmall} returned a result
+ under @{term P}, @{term P'} returns the same \<close>
 lemma ncollect_JVMsmall:
 assumes collect: "(\<sigma>', cset) \<in> JVMNaiveCollectionSemantics.csmall P \<sigma>"
   and intersect: "cset \<inter> classes_changed P P' = {}"
@@ -715,7 +728,8 @@ proof -
   qed(auto simp: JVMNaiveCollectionSemantics.csmall_def)
 qed
 
-(**** if collected classes unchanged, if cbig returned a result under P, P' returns the same ****)
+\<comment> \<open> if collected classes unchanged, if @{term cbig} returned a result
+ under @{term P}, @{term P'} returns the same \<close>
 lemma ncollect_JVMbig:
 assumes collect: "(\<sigma>', cset) \<in> JVMNaiveCollectionSemantics.cbig P \<sigma>"
   and intersect: "cset \<inter> classes_changed P P' = {}"
@@ -725,7 +739,7 @@ using JVMNaiveCollectionSemantics.csmall_to_cbig_prop2[where R="\<lambda>P P' cs
    and Q="\<lambda>\<sigma>. preallocated (fst(snd \<sigma>))" and P=P and P'=P' and \<sigma>=\<sigma> and \<sigma>'=\<sigma>' and coll=cset]
    ncollect_JVMsmall JVMsmall_prealloc_pres assms by auto
 
-(*** and finally, RTS algorithm based on ncollect is existence safe ****)
+\<comment> \<open> and finally, RTS algorithm based on @{term ncollect} is existence safe \<close>
 theorem jvm_naive_existence_safe:
 assumes p: "P \<in> jvm_progs" and "P' \<in> jvm_progs" and t: "t \<in> jvm_tests"
  and out: "o1 \<in> jvm_naive_out P t" and "jvm_deselect P o1 P'"
@@ -754,7 +768,7 @@ proof -
     preallocated_start_state changed' ss_eq o1 assms by auto
 qed
 
-(**** ...thus JVMNaiveCollection is an instance of CollectionBasedRTS ****)
+\<comment> \<open> ...thus @{term JVMNaiveCollection} is an instance of @{term CollectionBasedRTS} \<close>
 interpretation JVMNaiveCollectionRTS :
   CollectionBasedRTS "(=)" jvm_deselect jvm_progs jvm_tests
      JVMendset JVMcombine JVMcollect_id JVMsmall JVMNaiveCollect jvm_naive_out
@@ -762,7 +776,9 @@ interpretation JVMNaiveCollectionRTS :
  by unfold_locales (rule jvm_naive_existence_safe, auto simp: start_state_def)
 
 (***********************************************************************************************)
-(********************Smarter RTS algorithm********************)
+subsection "Smarter RTS algorithm"
+
+subsubsection "Definitions and helper lemmas"
 
 fun jvm_smart_out :: "jvm_prog \<Rightarrow> jvm_class \<Rightarrow> jvm_prog_out set" where
 "jvm_smart_out P t
@@ -808,10 +824,10 @@ lemma jvm_smart_out_classes_above_frames:
 using start_prog_classes_above_Start by(clarsimp split: if_split_asm simp: start_state_def)
 
 (**************************************************)
-(* Additional well-formedness conditions *)
+subsubsection "Additional well-formedness conditions"
 
-(* returns class to be initialized by given instr, if applicable
-NOTE: similar to exp-taking init_class from J/EConform - but requires field existence checks *)
+\<comment> \<open> returns class to be initialized by given instruction, if applicable \<close>
+(* NOTE: similar to exp-taking init_class from J/EConform - but requires field existence checks *)
 fun coll_init_class :: "'m prog \<Rightarrow> instr \<Rightarrow> cname option" where
 "coll_init_class P (New C) = Some C" |
 "coll_init_class P (Getstatic C F D) = (if \<exists>t. P \<turnstile> C has F,Static:t in D
@@ -821,8 +837,8 @@ fun coll_init_class :: "'m prog \<Rightarrow> instr \<Rightarrow> cname option" 
 "coll_init_class P (Invokestatic C M n) = seeing_class P C M" |
 "coll_init_class _ _ = None"
 
-(* checks whether the given value is a pointer; if it's an address, checks whether it points
- to an object in the given heap *)
+\<comment> \<open> checks whether the given value is a pointer; if it's an address,
+ checks whether it points to an object in the given heap \<close>
 fun is_ptr :: "heap \<Rightarrow> val \<Rightarrow> bool" where
 "is_ptr h Null = True" |
 "is_ptr h (Addr a) = (\<exists>Cfs. h a = Some Cfs)" |
@@ -831,7 +847,8 @@ fun is_ptr :: "heap \<Rightarrow> val \<Rightarrow> bool" where
 lemma is_ptrD: "is_ptr h v \<Longrightarrow> v = Null \<or> (\<exists>a. v = Addr a \<and> (\<exists>Cfs. h a = Some Cfs))"
  by(cases v, auto)
 
-(* shorthand for: given stack has entries required by given instr, including pointer where necessary *)
+\<comment> \<open> shorthand for: given stack has entries required by given instr,
+ including pointer where necessary \<close>
 fun stack_safe :: "instr \<Rightarrow> heap \<Rightarrow> val list \<Rightarrow> bool" where
 "stack_safe (Getfield F C) h stk = (length stk > 0 \<and> is_ptr h (hd stk))" |
 "stack_safe (Putfield F C) h stk = (length stk > 1 \<and> is_ptr h (hd (tl stk)))" |
@@ -913,43 +930,45 @@ proof -
   qed(simp_all)
 qed
 
-(**********************proving naive \<subseteq> smart**********************)
-(* We prove that, given well-formedness of the program and state, and "promises"
- about what has or will be collected in previous or future steps, jvm_smart
- collects everything jvm_naive does. We prove that promises about previously-
+(******************************************)
+subsubsection \<open> Proving naive @{text "\<subseteq>"} smart \<close>
+
+text \<open> We prove that, given well-formedness of the program and state, and "promises"
+ about what has or will be collected in previous or future steps, @{term jvm_smart}
+ collects everything @{term jvm_naive} does. We prove that promises about previously-
  collected classes ("backward promises") are maintained by execution, and promises
  about to-be-collected classes ("forward promises") are met by the end of execution.
  We then show that the required initial conditions (well-formedness and backward
  promises) are met by the defined start states, and thus that a run test will
- collect at least those classes collected by the naive algorithm. *)
+ collect at least those classes collected by the naive algorithm. \<close>
 
-(******* Backward promises (classes that should already be collected) ***********)
-(** - Classes of objects in the heap are collected **)
-(** - Non-None classes on the sheap are collected **)
-(** - Current classes from the frame stack are collected **)
-(** - Classes of system exceptions are collected **)
+\<comment> \<open> Backward promises (classes that should already be collected) \<close>
+  \<comment> \<open> - Classes of objects in the heap are collected \<close>
+  \<comment> \<open> - Non-@{term None} classes on the static heap are collected \<close>
+  \<comment> \<open> - Current classes from the frame stack are collected \<close>
+  \<comment> \<open> - Classes of system exceptions are collected \<close>
 
-(* If backward promises have been kept, a single step preserves this property;
+text "If backward promises have been kept, a single step preserves this property;
  i.e., any classes that have been added to this set (new heap objects, newly prepared
  sheap classes, new frames) are collected by the smart collection algorithm in that
- step or by forward promises *)
+ step or by forward promises:"
 lemma backward_coll_promises_kept:
 assumes
-(* well-formedness *)
+\<comment> \<open> well-formedness \<close>
       wtp: "wf_jvm_prog\<^bsub>\<Phi>\<^esub> P"
   and correct: "P,\<Phi> \<turnstile> (xp,h,frs,sh)\<surd>"
-(* defs *)
+\<comment> \<open> defs \<close>
   and f': "hd frs = (stk,loc,C',M',pc,ics)"
-(* backward promises - will be collected prior *)
+\<comment> \<open> backward promises - will be collected prior \<close>
   and heap: "\<And>C fs. \<exists>a. h a = Some(C,fs) \<Longrightarrow> classes_above P C \<subseteq> cset"
   and sheap: "\<And>C sfs i. sh C = Some(sfs,i) \<Longrightarrow> classes_above P C \<subseteq> cset"
   and xcpts: "classes_above_xcpts P \<subseteq> cset"
   and frames: "classes_above_frames P frs \<subseteq> cset"
-(* forward promises - will be collected after if not already *)
+\<comment> \<open> forward promises - will be collected after if not already \<close>
   and init_class_prom: "\<And>C. ics = Called [] \<or> ics = No_ics
        \<Longrightarrow> coll_init_class P (instrs_of P C' M' ! pc) = Some C \<Longrightarrow> classes_above P C \<subseteq> cset"
   and Calling_prom: "\<And>C' Cs'. ics = Calling C' Cs' \<Longrightarrow> classes_above P C' \<subseteq> cset"
-(* collection and step *)
+\<comment> \<open> collection and step \<close>
   and smart: "JVMexec_scollect P (xp,h,frs,sh) \<subseteq> cset"
   and small: "(xp',h',frs',sh') \<in> JVMsmall P (xp,h,frs,sh)"
 shows "(h' a = Some(C,fs) \<longrightarrow> classes_above P C \<subseteq> cset)
@@ -1228,15 +1247,16 @@ proof(cases frs)
   qed(simp)
 qed(simp)
 
-(******* Forward promises (classes that will be collected by the end of execution) ***********)
-(** - Classes that the current instruction will check initialization for will be collected **)
-(** - Class whose initialization is actively being called by the current frame will be collected **)
+\<comment> \<open> Forward promises (classes that will be collected by the end of execution) \<close>
+  \<comment> \<open> - Classes that the current instruction will check initialization for will be collected \<close>
+  \<comment> \<open> - Class whose initialization is actively being called by the current frame will be collected \<close>
 
-(** We prove that an ics of Calling C Cs (meaning C's initialization procedure is actively being
- called) means that classes above C will be collected by cbig (i.e., by the end of execution)
- -- using proof by induction, proving the base and IH separately **)
+text \<open> We prove that an @{term ics} of @{text "Calling C Cs"} (meaning @{text C}'s
+ initialization procedure is actively being called) means that classes above @{text C}
+ will be collected by @{term cbig} (i.e., by the end of execution) using proof by
+ induction, proving the base and IH separately. \<close>
 
-(** base case: Object **)
+\<comment> \<open> base case: @{term Object} \<close>
 lemma Calling_collects_base:
 assumes big: "(\<sigma>', cset') \<in> JVMSmartCollectionSemantics.cbig P \<sigma>"
  and nend: "\<sigma> \<notin> JVMendset"
@@ -1252,7 +1272,7 @@ next
      by(clarsimp simp: JVMSmartCollectionSemantics.csmall_def JVMendset_def)
 qed
 
-(** IH case where C has not been Prepared yet **)
+\<comment> \<open> IH case where @{text C} has not been prepared yet \<close>
 lemma Calling_None_next_state:
 assumes ics: "ics_of (hd(frames_of \<sigma>)) = Calling C Cs"
  and none: "sheap \<sigma> C = None"
@@ -1275,7 +1295,8 @@ next
       (clarsimp simp: split_beta JVMSmartCollectionSemantics.csmall_def JVMendset_def)
 qed
 
-(** IH case where C has been prepared (and has a direct superclass - i.e., is not Object) **)
+\<comment> \<open> IH case where @{text C} has been prepared (and has a direct superclass
+ - i.e., is not @{term Object}) \<close>
 lemma Calling_Prepared_next_state:
 assumes sub: "P \<turnstile> C \<prec>\<^sup>1 D"
  and obj: "P \<turnstile> D \<preceq>\<^sup>* Object"
@@ -1313,7 +1334,7 @@ proof(cases "C=Object")
   qed
 qed(simp)
 
-(** completed IH case: non-Object (pulls together above IH cases) **)
+\<comment> \<open> completed IH case: non-@{term Object} (pulls together above IH cases) \<close>
 lemma Calling_collects_IH:
 assumes sub: "P \<turnstile> C \<prec>\<^sup>1 D"
  and obj: "P \<turnstile> D \<preceq>\<^sup>* Object"
@@ -1355,7 +1376,7 @@ next
       then show ?thesis using step[of coll \<sigma>1] classes_above_def2[OF sub] \<sigma>1 f1 Cons nend curr
         by(clarsimp simp: JVMSmartCollectionSemantics.csmall_def JVMendset_def)
     next
-      case none: False (* Calling C Cs is the next ics, but after that is Calling D (C#Cs) *)
+      case none: False \<comment> \<open> @{text "Calling C Cs"} is the next @{text ics}, but after that is @{text "Calling D (C#Cs)"} \<close>
       then have sNone: "sheap \<sigma> C = None" using False by(cases "sheap \<sigma> C", auto)
       then have nend1: "\<sigma>1 \<notin> JVMendset" and curr1: "ics_of (hd (frames_of \<sigma>1)) = Calling C Cs"
         and prep: "\<exists>sfs. sheap \<sigma>1 C = \<lfloor>(sfs, Prepared)\<rfloor>"
@@ -1381,7 +1402,7 @@ next
   qed
 qed
 
-(** pulls together above base and IH cases **)
+\<comment> \<open>pulls together above base and IH cases \<close>
 lemma Calling_collects:
 assumes sub: "P \<turnstile> C \<preceq>\<^sup>* Object"
  and "(\<sigma>', cset') \<in> JVMSmartCollectionSemantics.cbig P \<sigma>"
@@ -1428,8 +1449,8 @@ proof -
 qed
 
 (*******************)
-(** instrs that call the initialization procedure will collect classes above
-  the class initialized by the end of execution (using the above Calling_collects) **)
+text "Instructions that call the initialization procedure will collect classes above
+  the class initialized by the end of execution (using the above @{text Calling_collects})."
 
 lemma New_collects:
 assumes sub: "P \<turnstile> C \<preceq>\<^sup>* Object"
@@ -1620,7 +1641,8 @@ qed
 
 (*********)
 
-(** the smart out execution function keeps the promise to collect above the initial class (Test) **)
+text "The @{text smart_out} execution function keeps the promise to
+ collect above the initial class (@{term Test}):"
 lemma jvm_smart_out_classes_above_Test:
 assumes s: "(\<sigma>',cset\<^sub>s) \<in> jvm_smart_out P t" and P: "P \<in> jvm_progs" and t: "t \<in> jvm_tests"
 shows "classes_above (jvm_make_test_prog P t) Test \<subseteq> cset\<^sub>s"
@@ -1658,27 +1680,28 @@ proof -
 qed
 
 (**********************************************)
-(** Using lemmas proving preservation of backward promises and keeping of forward promises,
-  we prove that the smart algorithm collects at least the classes as the naive algorithm does **)
+text "Using lemmas proving preservation of backward promises and keeping
+ of forward promises, we prove that the smart algorithm collects at least
+ the classes as the naive algorithm does."
 
-(** first over a single execution step (assumes promises) **)
+\<comment> \<open> first over a single execution step (assumes promises) \<close>
 lemma jvm_naive_to_smart_exec_collect:
 assumes
-(* well-formedness *)
+\<comment> \<open> well-formedness \<close>
       wtp: "wf_jvm_prog\<^bsub>\<Phi>\<^esub> P"
   and correct: "P,\<Phi> \<turnstile> (xp,h,frs,sh)\<surd>"
-(* defs *)
+\<comment> \<open> defs \<close>
   and f': "hd frs = (stk,loc,C',M',pc,ics)"
-(* backward promises - will be collected prior *)
+\<comment> \<open> backward promises - will be collected prior \<close>
   and heap: "\<And>C fs. \<exists>a. h a = Some(C,fs) \<Longrightarrow> classes_above P C \<subseteq> cset"
   and sheap: "\<And>C sfs i. sh C = Some(sfs,i) \<Longrightarrow> classes_above P C \<subseteq> cset"
   and xcpts: "classes_above_xcpts P \<subseteq> cset"
   and frames: "classes_above_frames P frs \<subseteq> cset"
-(* forward promises - will be collected after if not already *)
+\<comment> \<open> forward promises - will be collected after if not already \<close>
   and init_class_prom: "\<And>C. ics = Called [] \<or> ics = No_ics
        \<Longrightarrow> coll_init_class P (instrs_of P C' M' ! pc) = Some C \<Longrightarrow> classes_above P C \<subseteq> cset"
   and Calling_prom: "\<And>C' Cs'. ics = Calling C' Cs' \<Longrightarrow> classes_above P C' \<subseteq> cset"
-(* collection *)
+\<comment> \<open> collection \<close>
   and smart: "JVMexec_scollect P (xp,h,frs,sh) \<subseteq> cset"
 shows "JVMexec_ncollect P (xp,h,frs,sh) \<subseteq> cset"
 using assms
@@ -1856,24 +1879,24 @@ proof(cases frs)
   qed(simp)
 qed(simp)
 
-(** ... which is the same as csmall **)
+\<comment> \<open> ... which is the same as @{term csmall} \<close>
 lemma jvm_naive_to_smart_csmall:
 assumes
-(* well-formedness *)
+\<comment> \<open> well-formedness \<close>
       wtp: "wf_jvm_prog\<^bsub>\<Phi>\<^esub> P"
   and correct: "P,\<Phi> \<turnstile> (xp,h,frs,sh)\<surd>"
-(* defs *)
+\<comment> \<open> defs \<close>
   and f': "hd frs = (stk,loc,C',M',pc,ics)"
-(* backward promises - will be collected prior *)
+\<comment> \<open> backward promises - will be collected prior \<close>
   and heap: "\<And>C fs. \<exists>a. h a = Some(C,fs) \<Longrightarrow> classes_above P C \<subseteq> cset"
   and sheap: "\<And>C sfs i. sh C = Some(sfs,i) \<Longrightarrow> classes_above P C \<subseteq> cset"
   and xcpts: "classes_above_xcpts P \<subseteq> cset"
   and frames: "classes_above_frames P frs \<subseteq> cset"
-(* forward promises - will be collected after if not already *)
+\<comment> \<open> forward promises - will be collected after if not already \<close>
   and init_class_prom: "\<And>C. ics = Called [] \<or> ics = No_ics
     \<Longrightarrow> coll_init_class P (instrs_of P C' M' ! pc) = Some C \<Longrightarrow> classes_above P C \<subseteq> cset"
   and Calling_prom: "\<And>C' Cs'. ics = Calling C' Cs' \<Longrightarrow> classes_above P C' \<subseteq> cset"
-(* collections *)
+\<comment> \<open> collections \<close>
   and smart_coll: "(\<sigma>', cset\<^sub>s) \<in> JVMSmartCollectionSemantics.csmall P (xp,h,frs,sh)"
   and naive_coll: "(\<sigma>', cset\<^sub>n) \<in> JVMNaiveCollectionSemantics.csmall P (xp,h,frs,sh)"
   and smart: "cset\<^sub>s \<subseteq> cset"
@@ -1883,8 +1906,9 @@ using jvm_naive_to_smart_exec_collect[where h=h and sh=sh, OF assms(1-9)]
    by(fastforce simp: JVMNaiveCollectionSemantics.csmall_def
                       JVMSmartCollectionSemantics.csmall_def)
 
-(** ...which means over csmall_nstep, stepping from the end state (the point by which future
- promises will have been fulfilled) (uses backward and forward promise lemmas) **)
+\<comment> \<open> ...which means over @{term csmall_nstep}, stepping from the end state
+ (the point by which future promises will have been fulfilled) (uses backward
+ and forward promise lemmas) \<close>
 lemma jvm_naive_to_smart_csmall_nstep:
 "\<lbrakk> wf_jvm_prog\<^bsub>\<Phi>\<^esub> P;
    P,\<Phi> \<turnstile> (xp,h,frs,sh)\<surd>;
@@ -1927,11 +1951,11 @@ next
     case Suc2: (Suc n2)
     then have nend1: "\<sigma>1 \<notin> JVMendset"
       using JVMNaiveCollectionSemantics.csmall_nstep_Suc_nend \<sigma>1(3) by blast
-    obtain xp1 h1 frs1 sh1 where \<sigma>1_case: "\<sigma>1 = (xp1,h1,frs1,sh1)" by(cases \<sigma>1)
+    obtain xp1 h1 frs1 sh1 where \<sigma>1_case [simp]: "\<sigma>1 = (xp1,h1,frs1,sh1)" by(cases \<sigma>1)
     obtain stk1 loc1 C1' M1' pc1 ics1 where f1': "hd frs1 = (stk1,loc1,C1',M1',pc1,ics1)"
       by(cases "hd frs1")
     then obtain frs1' where [simp]: "frs1 = (stk1,loc1,C1',M1',pc1,ics1)#frs1'"
-     using JVMendset_def \<sigma>1_case nend1 by(cases frs1, auto)
+     using JVMendset_def nend1 by(cases frs1, auto)
     have cbig1: "(\<sigma>', cset') \<in> JVMNaiveCollectionSemantics.cbig P \<sigma>1"
       "(\<sigma>', cset'') \<in> JVMSmartCollectionSemantics.cbig P \<sigma>1" using \<sigma>1(3) \<sigma>1'(3) Suc.prems(13) \<sigma>_eq
       using JVMNaiveCollectionSemantics.cbig_def2
@@ -1947,7 +1971,7 @@ next
     proof -
       have "exec (P, ?\<sigma>) = \<lfloor>\<sigma>1'\<rfloor>" using JVMsmart_csmallD[OF \<sigma>1'(1)] by simp
       then have "P \<turnstile> ?\<sigma> -jvm\<rightarrow> \<sigma>1'" using jvm_one_step1[OF exec_1.exec_1I] by simp
-      then show ?thesis using Suc.prems(12) \<sigma>1_case \<sigma>_eq by fastforce
+      then show ?thesis using Suc.prems(12) \<sigma>_eq by fastforce
     qed
     have correct1: "P,\<Phi> \<turnstile> (xp1,h1,frs1,sh1)\<surd>" by(rule BV_correct[OF wtp step Suc.prems(2)])
 (**)
@@ -1968,7 +1992,7 @@ next
       show "(h1 a = \<lfloor>(C, fs)\<rfloor> \<longrightarrow> classes_above P C \<subseteq> cset) \<and>
       (sh1 C = \<lfloor>(sfs', i')\<rfloor> \<longrightarrow> classes_above P C \<subseteq> cset) \<and>
       (classes_above_frames P frs1 \<subseteq> cset)"
-      using Suc.prems(11-12) \<sigma>1' \<sigma>_eq[THEN sym] JVMsmart_csmallD[OF \<sigma>1'(1)] \<sigma>1_case
+      using Suc.prems(11-12) \<sigma>1' \<sigma>_eq[THEN sym] JVMsmart_csmallD[OF \<sigma>1'(1)]
         backward_coll_promises_kept[where h=h and xp=xp and sh=sh and frs=frs and frs'=frs1
           and xp'=xp1 and h'=h1 and sh'=sh1, OF Suc.prems(1-9)] by auto
     qed
@@ -1976,16 +2000,16 @@ next
      and sheap1: "\<And>C sfs i. sh1 C = Some(sfs,i) \<Longrightarrow> classes_above P C \<subseteq> cset"
      and frames1: "classes_above_frames P frs1 \<subseteq> cset" by blast+
     have xcpts1: "classes_above_xcpts P \<subseteq> cset" using Suc.prems(6) by auto
-(** init_class promise **)
+\<comment> \<open> @{text init_class} promise \<close>
     have sheap2: "\<And>C. coll_init_class P ?i1 = Some C
       \<Longrightarrow> \<forall>C'. P \<turnstile> C \<preceq>\<^sup>* C' \<longrightarrow> (\<exists>sfs i. sheap \<sigma>1 C' = \<lfloor>(sfs, i)\<rfloor>)
-       \<longrightarrow> classes_above P C' \<subseteq> cset" using sheap1 \<sigma>1_case by auto
+       \<longrightarrow> classes_above P C' \<subseteq> cset" using sheap1 by auto
     have called: "\<And>C. coll_init_class P ?i1 = Some C
       \<Longrightarrow> ics_of (hd (frames_of \<sigma>1)) = Called [] \<Longrightarrow> classes_above P C \<subseteq> cset"
     proof -
       fix C assume cic: "coll_init_class P ?i1 = Some C" and
                    ics: "ics_of (hd (frames_of \<sigma>1)) = Called []"
-      then obtain sobj where "sh1 C = Some sobj" using vics1 f1' \<sigma>1_case
+      then obtain sobj where "sh1 C = Some sobj" using vics1 f1'
         by(cases ?i1, auto simp: seeing_class_def split: if_split_asm)
       then show "classes_above P C \<subseteq> cset" using sheap1 by(cases sobj, simp)
     qed
@@ -1993,7 +2017,7 @@ next
       \<Longrightarrow> coll_init_class P ?i1 = Some C \<Longrightarrow> classes_above P C \<subseteq> cset"
     proof -
       fix C assume "ics1 = Called [] \<or> ics1 = No_ics" and cic: "coll_init_class P ?i1 = Some C"
-      then have ics: "?ics1 = Called [] \<or> ?ics1 = No_ics" using \<sigma>1_case f1' by simp
+      then have ics: "?ics1 = Called [] \<or> ?ics1 = No_ics" using f1' by simp
       then show "classes_above P C \<subseteq> cset" using cic
       proof(cases "?ics1 = Called []")
         case True then show ?thesis using cic called by simp
@@ -2007,7 +2031,7 @@ next
           then have "P \<turnstile> C1 \<preceq>\<^sup>* Object" using wtp is_class_is_subcls
             by(auto simp: wf_jvm_prog_phi_def)
           then show ?thesis using New_collects[OF _ cbig1(2) nend1 _ ics' sheap2 sub'']
-           \<sigma>1_case f1' ics cic New by auto
+           f1' ics cic New by auto
         next
           case (Getstatic C1 F1 D1)
           then obtain t where mC1: "P \<turnstile> C1 has F1,Static:t in D1" and eq: "C = D1"
@@ -2016,7 +2040,7 @@ next
           then have "P \<turnstile> C \<preceq>\<^sup>* Object" using wtp is_class_is_subcls
             by(auto simp: wf_jvm_prog_phi_def)
           then show ?thesis using Getstatic_collects[OF _ cbig1(2) nend1 _ ics' _ sheap2 sub'']
-            eq \<sigma>1_case f1' Getstatic ics cic by fastforce
+            eq f1' Getstatic ics cic by fastforce
         next
           case (Putstatic C1 F1 D1)
           then obtain t where mC1: "P \<turnstile> C1 has F1,Static:t in D1" and eq: "C = D1"
@@ -2025,7 +2049,7 @@ next
           then have "P \<turnstile> C \<preceq>\<^sup>* Object" using wtp is_class_is_subcls
             by(auto simp: wf_jvm_prog_phi_def)
           then show ?thesis using Putstatic_collects[OF _ cbig1(2) nend1 _ ics' _ sheap2 sub'']
-            eq \<sigma>1_case f1' Putstatic ics cic by fastforce
+            eq f1' Putstatic ics cic by fastforce
         next
           case (Invokestatic C1 M1 n')
           then obtain Ts T m where mC: "P \<turnstile> C1 sees M1, Static :  Ts\<rightarrow>T = m in C"
@@ -2034,11 +2058,11 @@ next
           then have Obj: "P \<turnstile> C \<preceq>\<^sup>* Object" using wtp is_class_is_subcls
             by(auto simp: wf_jvm_prog_phi_def)
           show ?thesis using Invokestatic_collects[OF _ cbig1(2) sub'' nend1 _ ics' mC sheap2]
-            Obj mC \<sigma>1_case f1' Invokestatic ics cic by auto
+            Obj mC f1' Invokestatic ics cic by auto
         qed(simp+)
       qed
     qed
-(** Calling promise **)
+\<comment> \<open> Calling promise \<close>
     have Calling_prom1: "\<And>C' Cs'. ics1 = Calling C' Cs' \<Longrightarrow> classes_above P C' \<subseteq> cset"
     proof -
       fix C' Cs' assume ics: "ics1 = Calling C' Cs'"
@@ -2046,35 +2070,38 @@ next
       then have obj: "P \<turnstile> C' \<preceq>\<^sup>* Object" using wtp is_class_is_subcls
         by(auto simp: wf_jvm_prog_phi_def)
       have sheap3: "\<forall>C1. P \<turnstile> C' \<preceq>\<^sup>* C1 \<longrightarrow> (\<exists>sfs i. sheap \<sigma>1 C1 = \<lfloor>(sfs, i)\<rfloor>)
-        \<longrightarrow> classes_above P C1 \<subseteq> cset" using sheap1 \<sigma>1_case by auto
+        \<longrightarrow> classes_above P C1 \<subseteq> cset" using sheap1 by auto
       show "classes_above P C' \<subseteq> cset"
-        using Calling_collects[OF obj cbig1(2) nend1 _ sheap3 sub''] ics \<sigma>1_case f1' by simp
+        using Calling_collects[OF obj cbig1(2) nend1 _ sheap3 sub''] ics f1' by simp
     qed
+    have in_naive: "(\<sigma>', cset') \<in> JVMNaiveCollectionSemantics.csmall_nstep P (xp1, h1, frs1, sh1) n1"
+      and in_smart: "(\<sigma>', cset'') \<in> JVMSmartCollectionSemantics.csmall_nstep P (xp1, h1, frs1, sh1) n1"
+     using \<sigma>1(3) \<sigma>1'(3) \<sigma>_eq[THEN sym] by simp+
     have sub2: "cset' \<subseteq> cset"
-     apply(rule Suc.hyps[OF wtp correct1 f1' heap1 sheap1 xcpts1 frames1 init_class_prom1 Calling_prom1])
-             using \<sigma>1(2,3) \<sigma>1'(2,3) \<sigma>_eq[THEN sym] \<sigma>1_case Suc.prems(12,13) by blast+
+     by(rule Suc.hyps[OF wtp correct1 f1' heap1 sheap1 xcpts1 frames1 init_class_prom1
+                         Calling_prom1 in_naive in_smart sub'' Suc.prems(13)]) simp_all
     then show ?thesis using \<sigma>1(2) \<sigma>1'(2) sub1 sub2 by fastforce
   qed
 qed
 
-(** ...which means over cbig **)
+\<comment> \<open> ...which means over @{term cbig} \<close>
 lemma jvm_naive_to_smart_cbig:
 assumes
-(* well-formedness *)
+\<comment> \<open> well-formedness \<close>
       wtp: "wf_jvm_prog\<^bsub>\<Phi>\<^esub> P"
   and correct: "P,\<Phi> \<turnstile> (xp,h,frs,sh)\<surd>"
-(* defs *)
+\<comment> \<open> defs \<close>
   and f': "hd frs = (stk,loc,C',M',pc,ics)"
-(* backward promises - will be collected/maintained prior *)
+\<comment> \<open> backward promises - will be collected/maintained prior \<close>
   and heap: "\<And>C fs. \<exists>a. h a = Some(C,fs) \<Longrightarrow> classes_above P C \<subseteq> cset"
   and sheap: "\<And>C sfs i. sh C = Some(sfs,i) \<Longrightarrow> classes_above P C \<subseteq> cset"
   and xcpts: "classes_above_xcpts P \<subseteq> cset"
   and frames: "classes_above_frames P frs \<subseteq> cset"
-(* forward promises - will be collected after if not already *)
+\<comment> \<open> forward promises - will be collected after if not already \<close>
   and init_class_prom: "\<And>C. ics = Called [] \<or> ics = No_ics
     \<Longrightarrow> coll_init_class P (instrs_of P C' M' ! pc) = Some C \<Longrightarrow> classes_above P C \<subseteq> cset"
   and Calling_prom: "\<And>C' Cs'. ics = Calling C' Cs' \<Longrightarrow> classes_above P C' \<subseteq> cset"
-(* collections *)
+\<comment> \<open> collections \<close>
   and n: "(\<sigma>', cset\<^sub>n) \<in> JVMNaiveCollectionSemantics.cbig P (xp,h,frs,sh)"
   and s: "(\<sigma>', cset\<^sub>s) \<in> JVMSmartCollectionSemantics.cbig P (xp,h,frs,sh)"
   and smart: "cset\<^sub>s \<subseteq> cset"
@@ -2092,8 +2119,8 @@ proof -
    using jvm_naive_to_smart_csmall_nstep[OF assms(1-9) n'(1) sn assms(12) nend] by fast
 qed
 
-(** ...thus naive \<subseteq> smart over the out function, since all conditions will be met - and promises
- kept - by the defined starting point **)
+\<comment> \<open>...thus naive @{text "\<subseteq>"} smart over the out function, since all conditions will be met - and promises
+ kept - by the defined starting point \<close>
 lemma jvm_naive_to_smart_collection:
 assumes naive: "(\<sigma>',cset\<^sub>n) \<in> jvm_naive_out P t" and smart: "(\<sigma>',cset\<^sub>s) \<in> jvm_smart_out P t"
   and P: "P \<in> jvm_progs" and t: "t \<in> jvm_tests"
@@ -2147,7 +2174,7 @@ proof -
       by(cases m, fastforce simp: seeing_class_def)
     with i show ?thesis by simp
   qed
-(* well-formedness *)
+\<comment> \<open> well-formedness \<close>
   note wtp
   moreover have correct: "?P,?\<Phi>' \<turnstile> (xp,h,frs,sh)\<surd>"
   proof -
@@ -2156,9 +2183,9 @@ proof -
     ultimately have "?P,?\<Phi>' \<turnstile> ?\<sigma>\<surd>" by(rule BV_correct_initial)
     then show ?thesis by simp
   qed
-(* defs *)
+\<comment> \<open> defs \<close>
   moreover have "hd frs = ([], [], Start, start_m, 0, No_ics)" by simp
-(* backward promises *)
+\<comment> \<open> backward promises \<close>
   moreover from jvm_smart_out_classes_above_start_heap[OF smart _ P t]
   have heap: "\<And>C fs. \<exists>a. h a = Some(C,fs) \<Longrightarrow> classes_above ?P C \<subseteq> cset\<^sub>s" by auto
   moreover from jvm_smart_out_classes_above_start_sheap[OF smart]
@@ -2167,12 +2194,12 @@ proof -
   have xcpts: "classes_above_xcpts ?P \<subseteq> cset\<^sub>s" by simp
   moreover from jvm_smart_out_classes_above_frames[OF smart]
   have frames: "classes_above_frames ?P frs \<subseteq> cset\<^sub>s" by simp
-(* forward promises - will be collected after if not already *)
+\<comment> \<open> forward promises - will be collected after if not already \<close>
   moreover from jvm_smart_out_classes_above_Test[OF smart P t] cic
   have init_class_prom: "\<And>C. ?ics = Called [] \<or> ?ics = No_ics
     \<Longrightarrow> coll_init_class ?P ?i = Some C \<Longrightarrow> classes_above ?P C \<subseteq> cset\<^sub>s" by simp
   moreover have "\<And>C' Cs'. ?ics = Calling C' Cs' \<Longrightarrow> classes_above ?P C' \<subseteq> cset\<^sub>s" by simp
-(* collections *)
+\<comment> \<open> collections \<close>
   moreover from naive
   have n: "(\<sigma>', cset\<^sub>n) \<in> JVMNaiveCollectionSemantics.cbig ?P (xp,h,frs,sh)" by simp
   moreover from smart obtain cset\<^sub>s' where
@@ -2183,9 +2210,12 @@ proof -
 qed
 
 
-(**********************proving other direction: smart \<subseteq> naive**********************)
-(* We will prove that jvm_naive collects everything jvm_smart does. Combined with the other
- direction, this shows that the naive and smart algorithms collect the same set of classes. *)
+(******************************************)
+subsubsection \<open> Proving smart @{text "\<subseteq>"} naive \<close>
+
+text "We prove that @{term jvm_naive} collects everything @{term jvm_smart}
+ does. Combined with the other direction, this shows that the naive and smart
+ algorithms collect the same set of classes."
 
 lemma jvm_smart_to_naive_exec_collect:
   "JVMexec_scollect P \<sigma> \<subseteq> JVMexec_ncollect P \<sigma>"
@@ -2275,16 +2305,17 @@ proof -
 qed
 
 (**************************************************)
-(** Having proved containment in both directions, we get naive = smart **)
+subsubsection "Safety of the smart algorithm"
 
+text "Having proved containment in both directions, we get naive = smart:"
 lemma jvm_naive_eq_smart_collection:
 assumes naive: "(\<sigma>',cset\<^sub>n) \<in> jvm_naive_out P t" and smart: "(\<sigma>',cset\<^sub>s) \<in> jvm_smart_out P t"
   and "P \<in> jvm_progs" and "t \<in> jvm_tests"
 shows "cset\<^sub>n = cset\<^sub>s"
 using jvm_naive_to_smart_collection[OF assms] jvm_smart_to_naive_collection[OF assms] by simp
 
-(*** Thus, since the RTS algorithm based on ncollect is existence safe, the algorithm based on
-  scollect is as well ****)
+text "Thus, since the RTS algorithm based on @{term ncollect} is existence safe,
+ the algorithm based on @{term scollect} is as well."
 theorem jvm_smart_existence_safe:
 assumes P: "P \<in> jvm_progs" and P': "P' \<in> jvm_progs" and t: "t \<in> jvm_tests"
  and out: "o1 \<in> jvm_smart_out P t" and dss: "jvm_deselect P o1 P'"
@@ -2301,7 +2332,7 @@ proof -
   then show ?thesis using s' by simp
 qed
 
-(**** ...thus JVMSmartCollection is an instance of CollectionBasedRTS ****)
+text "...thus @{term JVMSmartCollection} is an instance of @{term CollectionBasedRTS}:"
 interpretation JVMSmartCollectionRTS :
   CollectionBasedRTS "(=)" jvm_deselect jvm_progs jvm_tests
      JVMendset JVMcombine JVMcollect_id JVMsmall JVMSmartCollect jvm_smart_out

@@ -1,12 +1,11 @@
-(* File: JVMSemantics.thy *)
-(* Author: Susannah Mansky, UIUC 2017 *)
-(* Using Jinja JVM to instantiate the general Semantics locale *)
+(* Title: RTS/JVM_RTS/JVMSemantics.thy *)
+(* Author: Susannah Mansky, UIUC 2020 *)
+
+section "Instantiating @{term Semantics} with Jinja JVM"
 
 theory JVMSemantics
 imports "../Common/Semantics" "../../JinjaDCI/JVM/JVMExec"
 begin
-
-(** Instantiating Semantics with Jinja JVM **)
 
 fun JVMsmall :: "jvm_prog \<Rightarrow> jvm_state \<Rightarrow> jvm_state set" where
 "JVMsmall P \<sigma> = { \<sigma>'. exec (P, \<sigma>) = Some \<sigma>' }"

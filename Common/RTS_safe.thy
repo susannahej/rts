@@ -1,13 +1,15 @@
-(* File: RTS_safe.thy *)
-(* Author: Susannah Mansky, UIUC 2016 *)
-(* General model for test suites and Regression Test Selection algorithms *)
+(* Title: RTS/Common/RTS_safe.thy *)
+(* Author: Susannah Mansky, UIUC 2020 *)
+
+section "Regression Test Selection algorithm model"
 
 theory RTS_safe
 imports Main
 begin
 
-(* "Existence safe" RTS algorithm: if a test is deselected based on an output,
- there is SOME matching under the changed program *)
+text \<open> This describes an \emph{existence safe} RTS algorithm: if a test
+ is deselected based on an output, there is SOME equivalent output
+ under the changed program. \<close>
 locale RTS_safe =
  fixes
   out :: "'prog \<Rightarrow> 'test \<Rightarrow> 'prog_out set" and
@@ -21,7 +23,7 @@ locale RTS_safe =
   equiv_out_equiv: "equiv UNIV {(x,y). equiv_out x y}" and
   equiv_out_deselect: "\<lbrakk> equiv_out o1 o2; deselect P o1 P' \<rbrakk> \<Longrightarrow> deselect P o2 P'"
 
-begin (* RTS_alg *)
+context RTS_safe begin
 
 lemma equiv_out_refl: "equiv_out a a"
 using equiv_class_eq_iff equiv_out_equiv by fastforce
@@ -29,11 +31,11 @@ using equiv_class_eq_iff equiv_out_equiv by fastforce
 lemma equiv_out_trans: "\<lbrakk> equiv_out a b; equiv_out b c \<rbrakk> \<Longrightarrow> equiv_out a c"
 using equiv_class_eq_iff equiv_out_equiv by fastforce
 
-(* Shows that it is safe to continue deselecting a test based on its output
- under a previous program, to an arbitrary number of program changes, as long as the
- test is continually deselected. This is useful because it means changed
- programs don't need to generate new outputs for deselected tests to insure safety of
- future deselections. *)
+text "This shows that it is safe to continue deselecting a test based
+ on its output under a previous program, to an arbitrary number of
+ program changes, as long as the test is continually deselected. This
+ is useful because it means changed programs don't need to generate new
+ outputs for deselected tests to ensure safety of future deselections."
 lemma existence_safe_trans:
 assumes Pst_in: "Ps \<noteq> []" "set Ps \<subseteq> progs" "t \<in> tests" and
  o0: "o\<^sub>0 \<in> out (Ps!0) t" and
@@ -79,6 +81,6 @@ next
   qed
 qed
 
-end
+end \<comment> \<open> @{text RTS_safe} \<close>
 
 end

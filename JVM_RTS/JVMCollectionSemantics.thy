@@ -1,7 +1,7 @@
-(* File: JVMCollectionSemantics.thy *)
-(* Author: Susannah Mansky, UIUC 2017 *)
-(* Defining collection functions and using them with Jinja JVM to instantiate
- the CollectionSemantics locale *)
+(* File: RTS/JVM_RTS/JVMCollectionSemantics.thy *)
+(* Author: Susannah Mansky, UIUC 2020 *)
+
+section "Instantiating @{term CollectionSemantics} with Jinja JVM"
 
 theory JVMCollectionSemantics
 imports "../Common/CollectionSemantics" JVMSemantics "../JinjaSuppl/ClassesAbove"
@@ -15,7 +15,7 @@ abbreviation JVMcollect_id :: "cname set" where
 "JVMcollect_id \<equiv> {}"
 
 (*******************************************)
-(** JVM-specific classes_above theory **)
+subsection \<open> JVM-specific @{text "classes_above"} theory \<close>
 
 fun classes_above_frames :: "'m prog \<Rightarrow> frame list \<Rightarrow> cname set" where
 "classes_above_frames P ((stk,loc,C,M,pc,ics)#frs) = classes_above P C \<union> classes_above_frames P frs" |
@@ -71,7 +71,9 @@ lemma find_handler_pieces:
  \<Longrightarrow> h = h' \<and> sh = sh' \<and> classes_above_frames P frs' \<subseteq> classes_above_frames P frs"
 using find_handler_classes_above_frames by(auto dest: find_handler_heap find_handler_sheap)
 
-(********************Naive RTS algorithm********************)
+(**************************************)
+
+subsection "Naive RTS algorithm"
 
 fun JVMinstr_ncollect ::
  "[jvm_prog, instr, heap, val list] \<Rightarrow> cname set" where
@@ -104,6 +106,7 @@ fun JVMstep_ncollect ::
 "JVMstep_ncollect P h stk C M pc (Throwing Cs a) = classes_above P (cname_of h a)" |
 "JVMstep_ncollect P h stk C M pc ics = JVMinstr_ncollect P (instrs_of P C M ! pc) h stk"
 
+\<comment> \<open> naive collection function \<close>
 fun JVMexec_ncollect :: "jvm_prog \<Rightarrow> jvm_state \<Rightarrow> cname set" where
 "JVMexec_ncollect P (None, h, (stk,loc,C,M,pc,ics)#frs, sh) =
    (JVMstep_ncollect P h stk C M pc ics
@@ -120,7 +123,9 @@ interpretation JVMNaiveCollectionSemantics:
   CollectionSemantics JVMsmall JVMendset JVMNaiveCollect JVMcombine JVMcollect_id
  by unfold_locales auto
 
-(********************Smarter RTS algorithm********************)
+(**************************************)
+
+subsection "Smarter RTS algorithm"
 
 fun JVMinstr_scollect ::
  "[jvm_prog, instr] \<Rightarrow> cname set" where
@@ -142,6 +147,7 @@ fun JVMstep_scollect ::
 "JVMstep_scollect P i (Throwing Cs a) = {}" |
 "JVMstep_scollect P i ics = JVMinstr_scollect P i"
 
+\<comment> \<open> smarter collection function \<close>
 fun JVMexec_scollect :: "jvm_prog \<Rightarrow> jvm_state \<Rightarrow> cname set" where
 "JVMexec_scollect P (None, h, (stk,loc,C,M,pc,ics)#frs, sh) =
    JVMstep_scollect P (instrs_of P C M ! pc) ics"
@@ -157,6 +163,8 @@ interpretation JVMSmartCollectionSemantics:
  by unfold_locales
 
 (***********************************************)
+
+subsection "A few lemmas using the instantiations"
 
 lemma JVMnaive_csmallD:
 "(\<sigma>', cset) \<in> JVMNaiveCollectionSemantics.csmall P \<sigma>
