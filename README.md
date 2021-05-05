@@ -1,9 +1,11 @@
 # rts
+>> This development is now available as part of the Archive of Formal Proofs (AFP) at https://www.isa-afp.org/entries/Regression_Test_Selection.html <<
+
 General definition for safe Regression Test Selection (RTS) algorithms, instantiated with an algorithm over JVM using the JinjaDCI JVM semantics
 
 This repository gives a general definition for safe RTS algorithms and CollectionSemantics (the combination of a semantics with a collection function), including instantiations with class-collection-based RTS algorithms running over JVM.
 
-This repository relies on that found at https://github.com/susannahej/jinja-dci, whose contents are expected to be in a folder named JinjaDCI (instead of jinja-dci) placed in the same folder as one containing this repository. Files in this repository are compatible with at least Isabelle2019  and Isabelle2020 (the current version as of this update).
+This repository relies on that found at https://github.com/susannahej/jinja-dci, whose contents are expected to be in a folder named JinjaDCI (instead of jinja-dci) placed in the same folder as one containing this repository. Files in this repository are compatible with at least Isabelle2019 and Isabelle2020. See the AFP entry (link above) for the most up-to-date version (which relies on the AFP version of JinjaDCI).
 
 To run this development, a setup accessing the related (non-Jinja) AFP entries is required. See https://www.isa-afp.org/using.html for directions on how to install the AFP.
 
